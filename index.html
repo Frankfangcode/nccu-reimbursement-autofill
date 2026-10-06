@@ -13,8 +13,8 @@
   body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; color:var(--ink);
          background: radial-gradient(900px 500px at 85% -10%, #dbe8ff 0%, transparent 60%), radial-gradient(700px 500px at 40% 110%, #e4edff 0%, transparent 60%), var(--bg);
          -webkit-font-smoothing: antialiased; }
-  .app { display:grid; grid-template-columns: 460px 1fr; height:100vh; }
-  .panel { background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; box-shadow: 8px 0 40px rgba(11,92,255,.06); z-index:1; }
+  .app { display:grid; grid-template-columns: 460px minmax(0, 1fr); height:100vh; }
+  .panel { background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; min-width:0; box-shadow: 8px 0 40px rgba(11,92,255,.06); z-index:1; }
   .panel header { padding:18px 22px 14px; border-bottom:1px solid var(--line); }
   .brand { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
   .mark { width:52px; height:40px; overflow:hidden; position:relative; flex:none; }
@@ -31,15 +31,17 @@
   .card h2::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--grad); margin-right:8px; flex:none; }
   .card h2 button { margin-left:auto; }
   .card h3 { margin:18px 0 10px; font-size:12px; letter-spacing:.08em; font-weight:700; color:var(--accent); border-top:1px solid var(--line); padding-top:14px; }
-  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .row { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:10px; }
+  .row.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .row > * { min-width:0; }
   label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:11px; }
   label span.t { display:block; margin-bottom:5px; font-weight:500; }
-  input, select, textarea { width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:14px; color:var(--ink); background:#fbfcff; transition:border-color .15s, box-shadow .15s; }
+  input, select, textarea { width:100%; min-width:0; max-width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:14px; color:var(--ink); background:#fbfcff; transition:border-color .15s, box-shadow .15s; }
   input::placeholder, textarea::placeholder { color:#b3bdd6; }
   input:hover, select:hover, textarea:hover { border-color:#c5d4f5; }
   input:focus, select:focus, textarea:focus { outline:0; border-color:var(--accent); background:#fff; box-shadow:0 0 0 4px rgba(11,92,255,.13); }
   textarea { resize:vertical; min-height:58px; }
+  input[type=date] { -webkit-appearance:none; appearance:none; min-height:41px; display:block; }
   .hint { font-size:12px; color:var(--muted); margin:-5px 0 11px; line-height:1.55; }
   .warn { font-size:12px; color:var(--warn); margin:-5px 0 11px; line-height:1.55; }
   .calc { background:var(--soft); border:1px solid #d9e6ff; border-radius:12px; padding:10px 12px; font-size:13px; margin-bottom:11px; line-height:1.75; color:var(--deep); }
@@ -48,7 +50,10 @@
   .link { border:0; background:none; color:var(--warn); font-size:12.5px; cursor:pointer; padding:0; font-weight:500; }
   .add { width:100%; padding:12px; border:1.5px dashed #a9c4ff; color:var(--accent); background:var(--soft); border-radius:14px; cursor:pointer; font:inherit; font-size:14px; font-weight:600; transition:all .18s; }
   .add:hover { border-color:var(--accent); background:#e3edff; }
-  .panel footer { padding:14px 22px; border-top:1px solid var(--line); display:flex; gap:8px; align-items:center; background:#fff; }
+  .panel footer { padding:12px 22px 14px; border-top:1px solid var(--line); background:#fff; }
+  .panel footer .btns { display:flex; gap:8px; align-items:center; }
+  .panel footer label { margin-bottom:9px; }
+  .ghost { white-space:nowrap; }
   .print { flex:1; padding:12px; background:var(--grad); color:#fff; border:0; border-radius:12px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 8px 20px rgba(11,92,255,.32); transition:transform .15s, box-shadow .15s; }
   .print:hover { transform:translateY(-1px); box-shadow:0 12px 26px rgba(11,92,255,.4); }
   .print:active { transform:none; }
@@ -80,10 +85,20 @@
     body[data-print="v"] .page.r, body[data-print="r"] .page.v { display:none; }
   }
   @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; height:auto; }
-    .panel { border-right:0; }
-    .scroll { overflow:visible; }
+    html, body { height:auto; }
+    .app { grid-template-columns: minmax(0, 1fr); height:auto; }
+    .panel { border-right:0; box-shadow:none; }
+    .panel header { padding:14px 16px 12px; }
+    .scroll { overflow:visible; padding:14px 16px 18px; }
+    .card { padding:14px; }
+    /* 16px 以上 iOS 才不會在點輸入框時自動放大畫面 */
+    input, select, textarea { font-size:16px; }
+    .row.three { grid-template-columns: 1fr 1fr; }
+    .panel footer { position:sticky; bottom:0; z-index:5; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); box-shadow:0 -8px 24px rgba(10,42,158,.08); }
+    .stage { padding:16px; overflow:hidden; }
+    .tip { font-size:12.5px; }
   }
+  @media (max-width: 380px) { .row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body data-print="all">
@@ -101,9 +116,12 @@
     </header>
     <div class="scroll" id="form"></div>
     <footer>
-      <button class="print" id="printTab">列印</button>
-      <button class="ghost" id="printAll">兩種都印</button>
-      <button class="ghost" id="reset">清空</button>
+      <label><span class="t">列印檔名（留空＝依標題自動命名）</span><input id="fname" type="text" autocomplete="off"></label>
+      <div class="btns">
+        <button class="print" id="printTab">列印</button>
+        <button class="ghost" id="printAll">兩種都印</button>
+        <button class="ghost" id="reset">清空</button>
+      </div>
     </footer>
   </div>
   <div class="stage" id="stage">
@@ -247,7 +265,7 @@ function receiptForm(r, i) {
 function calcText(r) {
   const c = receiptCalc(r);
   if (c.amount == null) return '輸入應領金額後自動計算實領與大寫金額。';
-  let s = `實領 NT$ <b>${money(c.net)}</b>　大寫：${upperDigits(c.amount).map((d, j) => (d || '　') + '拾萬仟佰拾元'[j]).join('')}整`;
+  let s = `實領 NT$ <b>${money(c.net)}</b><br>大寫：${upperDigits(c.amount).map((d, j) => (d || '　') + '拾萬仟佰拾元'[j]).join('')}整`;
   if (r.employer) s += `<br>雇主負擔健保補充保費：${money(c.employer)} 元`;
   if (c.amount >= 20000 && !num(r.nhi)) s += `<br><span style="color:var(--warn)">金額達 20,000 元，校外人士可能需代扣自付健保補充保費 ${money(Math.round(c.amount * NHI_RATE))} 元，請確認。</span>`;
   return s;
@@ -260,6 +278,7 @@ function renderForm() {
     ? state.vouchers.map(voucherForm).join('') + `<button class="add" data-add="v">＋ 再加一張黏存單</button>`
     : state.receipts.map(receiptForm).join('') + `<button class="add" data-add="r">＋ 再加一張領據（一張 A4 可印兩張）</button>`;
   document.getElementById('printTab').textContent = t === 'v' ? '列印黏存單' : '列印領據';
+  updateFname();
   document.getElementById('tip').innerHTML = t === 'v'
     ? '列印後：經辦人親簽 → 發票浮貼在「憑證黏貼處」（可往上翻、由左至右、小張在上大張在下、每張間隔約 0.5 公分、最多 10 張）。'
     : '列印後：請受領人在「簽名或蓋章」親簽；鐘點費的加註處也要簽名。一張 A4 有上下兩張領據，只填一張時下半張會保持空白。';
@@ -356,7 +375,8 @@ function showTab() {
 function fitStage() {
   const stage = document.getElementById('stage'), pages = document.getElementById('pages');
   pages.style.transform = ''; pages.style.height = '';
-  const z = Math.min(1, (stage.clientWidth - 48) / pages.offsetWidth);
+  const pad = parseFloat(getComputedStyle(stage).paddingLeft) * 2;
+  const z = Math.min(1, (stage.clientWidth - pad) / pages.offsetWidth);
   if (z < 1) { pages.style.height = pages.offsetHeight * z + 'px'; pages.style.transform = `scale(${z})`; pages.style.marginLeft = '0'; }
   else pages.style.marginLeft = '';
 }
@@ -376,7 +396,7 @@ form.addEventListener('input', e => {
   }
   const calc = el.dataset.t === 'r' && form.querySelector(`[data-calc="${i}"]`);
   if (calc) calc.innerHTML = calcText(item);
-  save(); renderPages();
+  save(); renderPages(); updateFname();
 });
 form.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || ['count', 'total', 'helper', 'amount'].includes(e.target.dataset.k)) renderForm(); });
 form.addEventListener('click', e => {
@@ -390,18 +410,36 @@ document.querySelector('.tabs').addEventListener('click', e => {
   if (!e.target.dataset.tab) return;
   state.tab = e.target.dataset.tab; save(); renderForm(); showTab();
 });
+// 瀏覽器「另存為 PDF」會拿網頁標題當預設檔名，所以列印前暫時換掉標題
+const PAGE_TITLE = document.title;
+const cleanName = t => String(t || '').replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+function autoName(which) {
+  const title = cleanName(state.vouchers.map(v => v.title).find(Boolean));
+  const names = cleanName(state.receipts.map(r => r.name).filter(Boolean).join('、'));
+  if (which === 'v') return ['支出憑證黏存單', title].filter(Boolean).join('_');
+  if (which === 'r') return ['領據', title, names].filter(Boolean).join('_');
+  return ['核銷單', title].filter(Boolean).join('_');
+}
+const fname = document.getElementById('fname');
+function updateFname() {
+  state.fn = state.fn || {};
+  fname.placeholder = autoName(state.tab);
+  if (document.activeElement !== fname) fname.value = state.fn[state.tab] || '';
+}
+fname.addEventListener('input', () => { state.fn[state.tab] = fname.value; save(); });
 function doPrint(which) {
+  document.title = cleanName(which === 'all' ? '' : state.fn[which]) || autoName(which);
   document.body.dataset.print = which;
   const pages = document.querySelectorAll('.page');
   pages.forEach(p => p.style.display = '');
   window.print();
 }
-window.addEventListener('afterprint', showTab);
+window.addEventListener('afterprint', () => { document.title = PAGE_TITLE; showTab(); });
 document.getElementById('printTab').onclick = () => doPrint(state.tab);
 document.getElementById('printAll').onclick = () => doPrint('all');
 document.getElementById('reset').onclick = () => {
   if (!confirm('確定要清空所有已填寫的內容嗎？')) return;
-  state = { tab: state.tab, vouchers:[newVoucher()], receipts:[newReceipt()] };
+  state = { tab: state.tab, vouchers:[newVoucher()], receipts:[newReceipt()], fn:{} };
   save(); renderForm(); renderPages();
 };
 window.addEventListener('resize', fitStage);
