@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>核銷單自動填寫｜FinTech Lab NCCU</title>
+<link rel="icon" href="assets/logo.png">
+<style>
+  :root { --ink:#0b1b4d; --muted:#6a7694; --line:#e3e9f7; --bg:#f4f7ff; --accent:#0b5cff; --deep:#0a2a9e; --sky:#3b8bff; --soft:#eef4ff; --warn:#d9480f;
+          --grad:linear-gradient(135deg,#0a2a9e 0%,#0b5cff 55%,#3b8bff 100%); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; }
+  body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; color:var(--ink);
+         background: radial-gradient(900px 500px at 85% -10%, #dbe8ff 0%, transparent 60%), radial-gradient(700px 500px at 40% 110%, #e4edff 0%, transparent 60%), var(--bg);
+         -webkit-font-smoothing: antialiased; }
+  .app { display:grid; grid-template-columns: 460px 1fr; height:100vh; }
+  .panel { background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; box-shadow: 8px 0 40px rgba(11,92,255,.06); z-index:1; }
+  .panel header { padding:18px 22px 14px; border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .mark { width:52px; height:40px; overflow:hidden; position:relative; flex:none; }
+  .mark img { position:absolute; width:78px; left:-15.5px; top:-12.5px; mix-blend-mode:multiply; }
+  .brand .org { font-size:11px; letter-spacing:.14em; font-weight:700; color:var(--accent); text-transform:uppercase; }
+  .panel h1 { margin:2px 0 0; font-size:19px; font-weight:800; letter-spacing:.01em; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tabs { display:flex; gap:4px; background:var(--soft); padding:4px; border-radius:12px; }
+  .tabs button { flex:1; padding:9px 6px; border:0; background:transparent; border-radius:9px; font:inherit; font-size:14px; cursor:pointer; color:var(--muted); transition:all .18s; }
+  .tabs button:hover { color:var(--accent); }
+  .tabs button.on { background:#fff; color:var(--deep); font-weight:700; box-shadow:0 2px 8px rgba(10,42,158,.14); }
+  .scroll { overflow:auto; padding:18px 22px 26px; flex:1; }
+  .card { border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:16px; background:#fff; box-shadow:0 6px 24px rgba(10,42,158,.05); }
+  .card h2 { margin:0 0 14px; font-size:15px; font-weight:700; display:flex; align-items:center; }
+  .card h2::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--grad); margin-right:8px; flex:none; }
+  .card h2 button { margin-left:auto; }
+  .card h3 { margin:18px 0 10px; font-size:12px; letter-spacing:.08em; font-weight:700; color:var(--accent); border-top:1px solid var(--line); padding-top:14px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:11px; }
+  label span.t { display:block; margin-bottom:5px; font-weight:500; }
+  input, select, textarea { width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:14px; color:var(--ink); background:#fbfcff; transition:border-color .15s, box-shadow .15s; }
+  input::placeholder, textarea::placeholder { color:#b3bdd6; }
+  input:hover, select:hover, textarea:hover { border-color:#c5d4f5; }
+  input:focus, select:focus, textarea:focus { outline:0; border-color:var(--accent); background:#fff; box-shadow:0 0 0 4px rgba(11,92,255,.13); }
+  textarea { resize:vertical; min-height:58px; }
+  .hint { font-size:12px; color:var(--muted); margin:-5px 0 11px; line-height:1.55; }
+  .warn { font-size:12px; color:var(--warn); margin:-5px 0 11px; line-height:1.55; }
+  .calc { background:var(--soft); border:1px solid #d9e6ff; border-radius:12px; padding:10px 12px; font-size:13px; margin-bottom:11px; line-height:1.75; color:var(--deep); }
+  .check { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); }
+  .check input { width:auto; accent-color:var(--accent); }
+  .link { border:0; background:none; color:var(--warn); font-size:12.5px; cursor:pointer; padding:0; font-weight:500; }
+  .add { width:100%; padding:12px; border:1.5px dashed #a9c4ff; color:var(--accent); background:var(--soft); border-radius:14px; cursor:pointer; font:inherit; font-size:14px; font-weight:600; transition:all .18s; }
+  .add:hover { border-color:var(--accent); background:#e3edff; }
+  .panel footer { padding:14px 22px; border-top:1px solid var(--line); display:flex; gap:8px; align-items:center; background:#fff; }
+  .print { flex:1; padding:12px; background:var(--grad); color:#fff; border:0; border-radius:12px; font:inherit; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 8px 20px rgba(11,92,255,.32); transition:transform .15s, box-shadow .15s; }
+  .print:hover { transform:translateY(-1px); box-shadow:0 12px 26px rgba(11,92,255,.4); }
+  .print:active { transform:none; }
+  .ghost { padding:12px 13px; background:#fff; border:1.5px solid var(--line); border-radius:12px; cursor:pointer; font:inherit; font-size:13px; color:var(--muted); transition:all .15s; }
+  .ghost:hover { border-color:var(--accent); color:var(--accent); }
+  .stage { overflow:auto; padding:28px; min-width:0; }
+  .tip { max-width:794px; margin:0 auto 18px; font-size:13px; color:var(--deep); line-height:1.65; background:rgba(255,255,255,.75); backdrop-filter:blur(8px); border:1px solid #d9e6ff; border-radius:14px; padding:12px 16px; }
+
+  /* 紙張：所有欄位位置以 mm 為單位疊在官方表單底圖上 */
+  .pages { width:210mm; margin:0 auto; transform-origin: top left; }
+  .page { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; margin-bottom:8mm; box-shadow:0 18px 50px rgba(10,42,158,.16); }
+  .page img.bg { position:absolute; inset:0; width:100%; height:100%; }
+  .f { position:absolute; display:flex; align-items:center; white-space:nowrap; overflow:hidden; line-height:1;
+       font-family:"BiauKai TC","BiauKai","DFKai-SB","標楷體","Kaiti TC","STKaiti",serif; color:#000; font-size:12pt; }
+  .f.c { justify-content:center; }
+  .f.ck { font-family: "Arial Unicode MS", "Apple Symbols", sans-serif; font-weight:700; overflow:visible; }
+  .f.notes { display:block; white-space:normal; line-height:1.3; }
+  .f.notes div { white-space:nowrap; overflow:hidden; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    html, body { height:auto; background:#fff; }
+    .panel, .tip { display:none !important; }
+    .app { display:block; height:auto; }
+    .stage { padding:0; overflow:visible; }
+    .pages { transform:none !important; margin:0; height:auto !important; }
+    .page { margin:0; box-shadow:none; break-after:page; page-break-after:always; }
+    .page:last-child { break-after:auto; page-break-after:auto; }
+    body[data-print="v"] .page.r, body[data-print="r"] .page.v { display:none; }
+  }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; height:auto; }
+    .panel { border-right:0; }
+    .scroll { overflow:visible; }
+  }
+</style>
+</head>
+<body data-print="all">
+<div class="app">
+  <div class="panel">
+    <header>
+      <div class="brand">
+        <div class="mark"><img src="assets/logo.png" alt="FinTech Lab NCCU"></div>
+        <div><div class="org">FinTech Lab · NCCU</div><h1>核銷單自動填寫</h1></div>
+      </div>
+      <div class="tabs">
+        <button data-tab="v">支出憑證黏存單</button>
+        <button data-tab="r">個人領據</button>
+      </div>
+    </header>
+    <div class="scroll" id="form"></div>
+    <footer>
+      <button class="print" id="printTab">列印</button>
+      <button class="ghost" id="printAll">兩種都印</button>
+      <button class="ghost" id="reset">清空</button>
+    </footer>
+  </div>
+  <div class="stage" id="stage">
+    <div class="tip" id="tip"></div>
+    <div class="pages" id="pages"></div>
+  </div>
+</div>
+
+<script>
+const KEY = 'nccu-reimburse-v1';
+const FEE_TYPES = ['講演鐘點費','撰稿費','筆譯費','出席費','交通費','授課鐘點費','顧問費','工作費','其他'];
+const UPPER = '零壹貳參肆伍陸柒捌玖';
+const NHI_RATE = 0.0211;
+
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const newVoucher = () => ({ title:'', total:'', count:'', purpose:'', handler:'', phone:'', helper:'' });
+const newReceipt = () => ({ name:'', fee:'', from:'', to:'', other:'', amount:'', tax:'', taxRate:'', taxMode:'', nhi:'', employer:true,
+  topic:'', time:'', place:'', job:'', sid:'', mainland:'', nation:'', zip:'', addr:'', idno:'', arc:'', passport:'', birth:'', date:today() });
+
+const DEMO = {
+  tab:'v',
+  vouchers:[{ title:'政大金融科技創新實驗室', total:'447', count:'2', purpose:'文具', handler:'', phone:'0912-345-678', helper:'' }],
+  receipts:[
+    { ...newReceipt(), name:'王小明', fee:'講演鐘點費', amount:'2000', topic:'金融科技與 AI 賦能設計思考工作坊', time:'14:00–16:00', place:'商學院 260306', job:'某某新創 創辦人',
+      mainland:'否', zip:'333', addr:'桃園市龜山區文學路 00 號 0 樓', idno:'A123456789', passport:'WANG, HSIAO-MING', birth:'1994/10/02', date:'2026-09-16' },
+    { ...newReceipt(), name:'陳大文', fee:'交通費', from:'台北', to:'高雄', amount:'123456', tax:'1000', taxRate:'10', taxMode:'應稅', nhi:'2605', sid:'112305001', mainland:'是', nation:'日本', arc:'AB12345678', date:'2026-10-06' }
+  ]
+};
+
+let state = load();
+function load() {
+  if (location.search.includes('demo')) return { ...structuredClone(DEMO), tab: location.search.includes('tab=r') ? 'r' : 'v' };
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.vouchers && s.receipts) return s; } catch (e) {}
+  return { tab:'v', vouchers:[newVoucher()], receipts:[newReceipt()] };
+}
+function save() { if (location.search.includes('demo')) return; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = s => { const n = parseInt(String(s ?? '').replace(/[^\d]/g, ''), 10); return isNaN(n) ? null : n; };
+const money = n => n == null ? '' : n.toLocaleString('en-US');
+
+function receiptCalc(r) {
+  const amount = num(r.amount), tax = num(r.tax) || 0, nhi = num(r.nhi) || 0;
+  return { amount, net: amount == null ? null : amount - tax - nhi, employer: amount == null ? null : Math.round(amount * NHI_RATE) };
+}
+function parseHelper(text) {
+  const nums = String(text).split(/[\s,，、+]+/).map(x => parseFloat(x)).filter(x => !isNaN(x));
+  return { count: nums.length, total: Math.round(nums.reduce((a, b) => a + b, 0)) };
+}
+
+/* ---------- 左側表單 ---------- */
+function inp(t, i, k, label, o = {}) {
+  const item = (t === 'v' ? state.vouchers : state.receipts)[i];
+  const a = `data-t="${t}" data-i="${i}" data-k="${k}"`;
+  let c;
+  if (o.options) c = `<select ${a}>${o.options.map(([v, l]) => `<option value="${esc(v)}"${item[k] === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  else if (o.area) c = `<textarea ${a} placeholder="${esc(o.ph || '')}">${esc(item[k])}</textarea>`;
+  else c = `<input ${a} type="${o.type || 'text'}" value="${esc(item[k])}" placeholder="${esc(o.ph || '')}"${o.mode ? ` inputmode="${o.mode}"` : ''}>`;
+  return `<label><span class="t">${label}</span>${c}</label>`;
+}
+
+function voucherForm(v, i) {
+  const n = num(v.count), t = num(v.total);
+  return `<div class="card">
+    <h2>黏存單 ${i + 1}${state.vouchers.length > 1 ? `<button class="link" data-del="v" data-i="${i}">刪除</button>` : ''}</h2>
+    ${inp('v', i, 'title', '工作（或業務）計畫名稱', { ph:'活動名字、社團社課' })}
+    ${inp('v', i, 'helper', '發票金額加總小幫手（選填）', { area:true, ph:'把每張發票金額貼進來，例如：44 403\n會自動算出總金額與張數' })}
+    <div class="row">
+      ${inp('v', i, 'total', '金額（阿拉伯數字）', { mode:'numeric', ph:'447' })}
+      ${inp('v', i, 'count', '黏貼憑證張數', { mode:'numeric', ph:'2' })}
+    </div>
+    ${n > 10 ? `<div class="warn">一張黏存單以黏貼 10 張為限，請拆成兩張。</div>` : ''}
+    ${t > 99999999 ? `<div class="warn">金額超過表格的 8 位數。</div>` : ''}
+    ${inp('v', i, 'purpose', '用途摘要', { ph:'如：文具、餐費、影印費' })}
+    <div class="row">
+      ${inp('v', i, 'handler', '經辦人（留空＝列印後親簽）', { ph:'建議留空親簽' })}
+      ${inp('v', i, 'phone', '連絡電話（負責核銷人）', { mode:'tel', ph:'09xx-xxx-xxx' })}
+    </div>
+    <div class="hint">「經費用途」與下方付款方式表格依規定留空，不會填寫。</div>
+  </div>`;
+}
+
+function receiptForm(r, i) {
+  const c = receiptCalc(r);
+  const lecture = r.fee === '講演鐘點費' || r.fee === '授課鐘點費';
+  return `<div class="card">
+    <h2>領據 ${i + 1}${state.receipts.length > 1 ? `<button class="link" data-del="r" data-i="${i}">刪除</button>` : ''}</h2>
+    <div class="row">
+      ${inp('r', i, 'name', '受領人', { ph:'姓名' })}
+      ${inp('r', i, 'date', '領據日期', { type:'date' })}
+    </div>
+    <div class="hint">領據日期須與講座／活動日期相同，會自動換算成民國年。</div>
+    ${inp('r', i, 'fee', '費用別（每張領據限一種）', { options:[['', '— 請選擇 —'], ...FEE_TYPES.map(x => [x, x])] })}
+    <div class="hint">費用別請事先詢問課外組老師。</div>
+    ${r.fee === '交通費' ? `<div class="row">${inp('r', i, 'from', '起', { ph:'台北' })}${inp('r', i, 'to', '迄', { ph:'高雄' })}</div>` : ''}
+    ${r.fee === '其他' ? inp('r', i, 'other', '其他（請說明）') : ''}
+
+    <h3>金額</h3>
+    ${inp('r', i, 'amount', '應領 NT$', { mode:'numeric', ph:'2000' })}
+    ${c.amount > 999999 ? `<div class="warn">大寫金額欄位最多到拾萬位（999,999）。</div>` : ''}
+    <div class="row three">
+      ${inp('r', i, 'tax', '所得稅額', { mode:'numeric', ph:'選填' })}
+      ${inp('r', i, 'taxRate', '稅率 %', { mode:'decimal', ph:'選填' })}
+      ${inp('r', i, 'taxMode', '扣繳', { options:[['', '不勾'], ['應稅', '應稅'], ['免扣繳', '免扣繳']] })}
+    </div>
+    ${inp('r', i, 'nhi', '自付健保補充保費（2.11%）', { mode:'numeric', ph:'選填' })}
+    <div class="calc" data-calc="${i}">${calcText(r)}</div>
+    <label class="check"><input type="checkbox" data-t="r" data-i="${i}" data-k="employer"${r.employer ? ' checked' : ''}>在紅框內填上雇主負擔健保補充保費</label>
+
+    <h3>空白處加註${lecture ? '（鐘點費必填）' : '（選填）'}</h3>
+    ${inp('r', i, 'topic', '演講主題')}
+    <div class="row">
+      ${inp('r', i, 'time', '時間起迄', { ph:'14:00–16:00' })}
+      ${inp('r', i, 'place', '地點')}
+    </div>
+    ${inp('r', i, 'job', '講者現職／職稱')}
+
+    <h3>受領人資料</h3>
+    <div class="row">
+      ${inp('r', i, 'sid', '員工編號／學生證號', { ph:'有的話填這格即可' })}
+      ${inp('r', i, 'mainland', '大陸人士', { options:[['', '不勾'], ['是', '是'], ['否', '否']] })}
+    </div>
+    ${inp('r', i, 'nation', '外籍人士國籍', { ph:'選填' })}
+    <div class="hint">以下為「無員工編號或學號者」才需要填寫：</div>
+    <div class="row" style="grid-template-columns:110px 1fr">
+      ${inp('r', i, 'zip', '郵遞區號', { mode:'numeric', ph:'116' })}
+      ${inp('r', i, 'addr', '戶籍地址（含區、鄰、里）')}
+    </div>
+    <div class="row">
+      ${inp('r', i, 'idno', '身分證字號／護照號碼')}
+      ${inp('r', i, 'arc', '外僑統一證號', { ph:'選填' })}
+    </div>
+    <div class="row">
+      ${inp('r', i, 'passport', '護照英文姓名', { ph:'選填' })}
+      ${inp('r', i, 'birth', '西元出生年月日', { ph:'1994/10/02' })}
+    </div>
+    <div class="hint">「簽名或蓋章」一律留空，請受領人親簽（不得塗改）。</div>
+  </div>`;
+}
+
+function calcText(r) {
+  const c = receiptCalc(r);
+  if (c.amount == null) return '輸入應領金額後自動計算實領與大寫金額。';
+  let s = `實領 NT$ <b>${money(c.net)}</b>　大寫：${upperDigits(c.amount).map((d, j) => (d || '　') + '拾萬仟佰拾元'[j]).join('')}整`;
+  if (r.employer) s += `<br>雇主負擔健保補充保費：${money(c.employer)} 元`;
+  if (c.amount >= 20000 && !num(r.nhi)) s += `<br><span style="color:var(--warn)">金額達 20,000 元，校外人士可能需代扣自付健保補充保費 ${money(Math.round(c.amount * NHI_RATE))} 元，請確認。</span>`;
+  return s;
+}
+
+function renderForm() {
+  const t = state.tab;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.getElementById('form').innerHTML = t === 'v'
+    ? state.vouchers.map(voucherForm).join('') + `<button class="add" data-add="v">＋ 再加一張黏存單</button>`
+    : state.receipts.map(receiptForm).join('') + `<button class="add" data-add="r">＋ 再加一張領據（一張 A4 可印兩張）</button>`;
+  document.getElementById('printTab').textContent = t === 'v' ? '列印黏存單' : '列印領據';
+  document.getElementById('tip').innerHTML = t === 'v'
+    ? '列印後：經辦人親簽 → 發票浮貼在「憑證黏貼處」（可往上翻、由左至右、小張在上大張在下、每張間隔約 0.5 公分、最多 10 張）。'
+    : '列印後：請受領人在「簽名或蓋章」親簽；鐘點費的加註處也要簽名。一張 A4 有上下兩張領據，只填一張時下半張會保持空白。';
+}
+
+/* ---------- 右側紙張 ---------- */
+// x / cy / w / h 單位皆為 mm；cy 是該欄位的垂直中心
+function T(x, cy, w, text, o = {}) {
+  if (text === '' || text == null) return '';
+  const h = o.h || 6;
+  return `<div class="f ${o.cls || ''}"${o.fit === false ? '' : ' data-fit'} style="left:${x}mm;top:${(cy - h / 2).toFixed(2)}mm;width:${w}mm;height:${h}mm;font-size:${o.size || 12}pt">${esc(text)}</div>`;
+}
+const CK = (cx, cy) => T(cx - 2.5, cy, 5, '✓', { cls:'c ck', size:12, h:5, fit:false });
+
+function voucherPage(v) {
+  const total = num(v.total);
+  const digits = total == null ? [] : String(total).slice(-8).padStart(8, ' ').split('');
+  return `<div class="page v"><img class="bg" src="assets/form.png" alt="">
+    ${T(70, 32.2, 70, v.title, { size:14 })}
+    ${T(121, 40.3, 74, v.count, { cls:'c', size:13 })}
+    ${T(122, 48.8, 76, v.purpose, { size:13 })}
+    ${digits.map((d, j) => T(22.7 + j * 7.9, 51.1, 7.9, d.trim(), { cls:'c', size:13, h:5, fit:false })).join('')}
+    ${T(32, 68.3, 38, v.handler, { cls:'c', size:13 })}
+    ${T(31.5, 272.3, 70, v.phone, { size:12 })}
+  </div>`;
+}
+
+function upperDigits(amount) {
+  if (amount == null || amount > 999999) return ['', '', '', '', '', ''];
+  return String(amount).padStart(6, ' ').split('').map(d => d === ' ' ? '' : UPPER[+d]);
+}
+
+// 官方領據 PDF 上下兩張的行距略有不同，所以各自記錄 [上半張, 下半張] 的垂直位置
+const RY = {
+  name:[17.6,164.6], row1:[25.7,172.1], row2:[31.2,179.9], fromto:[25.2,171.6], other:[30.45,179.3], amount:[35.65,184.6],
+  tax:[40.1,189.0], taxck:[40.7,189.7], nhi:[46.9,195.75], net:[53.95,202.8], employer:[62.6,211.7], upper:[68.0,216.9], notes:[72.0,221.0],
+  sid:[90.8,239.5], mainland:[99.6,245.7], nation:[98.9,245.1], zip:[114.2,257.5], addr:[113.6,256.9], idno:[120.4,263.7], passport:[127.75,270.9], date:[134.7,278.3]
+};
+const FEE_POS = { '講演鐘點費':[39.5,'row1'], '撰稿費':[63.0,'row1'], '筆譯費':[78.5,'row1'], '出席費':[94.1,'row1'], '交通費':[110.3,'row1'],
+  '授課鐘點費':[32.4,'row2'], '顧問費':[53.7,'row2'], '工作費':[69.6,'row2'], '其他':[85.6,'row2'] };
+
+function receiptFields(r, s) {
+  const y = k => RY[k][s];
+  const c = receiptCalc(r);
+  const fee = FEE_POS[r.fee];
+  const [yy, mm, dd] = (r.date || '').split('-');
+  const notes = [r.topic && `主題：${r.topic}`, [r.time && `時間：${r.time}`, r.place && `地點：${r.place}`].filter(Boolean).join('　'), r.job && `講者職稱：${r.job}`].filter(Boolean);
+  return `
+    ${T(34.5, y('name'), 31, r.name, { cls:'c', size:13 })}
+    ${fee ? CK(fee[0], y(fee[1])) : ''}
+    ${r.fee === '交通費' ? T(144, y('fromto'), 15.5, r.from, { cls:'c', size:11 }) + T([166.5, 168.2][s], y('fromto'), 17, r.to, { cls:'c', size:11 }) : ''}
+    ${r.fee === '其他' ? T(94.3, y('other'), 17, r.other, { cls:'c', size:11 }) : ''}
+    ${T(45, y('amount'), 32, money(c.amount), { cls:'c' })}
+    ${T(45, y('tax'), 32, r.tax === '' ? '' : money(num(r.tax)), { cls:'c' })}
+    ${T(92.5, y('tax'), 16, r.taxRate, { cls:'c' })}
+    ${r.taxMode === '應稅' ? CK(116.7, y('taxck')) : r.taxMode === '免扣繳' ? CK(130.8, y('taxck')) : ''}
+    ${T(58.7, y('nhi'), 21, r.nhi === '' ? '' : money(num(r.nhi)), { cls:'c' })}
+    ${T(45, y('net'), 32, money(c.net), { cls:'c' })}
+    ${r.employer ? T(149.5, y('employer'), 17, money(c.employer), { cls:'c', size:10, h:4 }) : ''}
+    ${upperDigits(c.amount).map((d, j) => T([56.4, 69.2, 81.7, 94.5, 107.1, 119.9][j] - 4, y('upper'), 8, d, { cls:'c', size:14, h:7, fit:false })).join('')}
+    ${notes.length ? `<div class="f notes" style="left:96mm;top:${y('notes')}mm;width:98mm;height:16mm;font-size:10.5pt">${notes.map(n => `<div data-fit>${esc(n)}</div>`).join('')}</div>` : ''}
+    ${T(87.4, y('sid'), 26.7, r.sid, { cls:'c' })}
+    ${r.mainland === '是' ? CK(45.7, y('mainland')) : r.mainland === '否' ? CK(54.3, y('mainland')) : ''}
+    ${T(89, y('nation'), 26, r.nation, { cls:'c' })}
+    ${String(r.zip).slice(0, 5).split('').map((d, j) => T(77.2 + j * 3.5 - 1.75, y('zip'), 3.5, d, { cls:'c', size:10, h:4, fit:false })).join('')}
+    ${T(93.6, y('addr'), 62, r.addr, { size:11 })}
+    ${T(65, y('idno'), 42, r.idno, { cls:'c' })}
+    ${T(144.5, y('idno'), 46, r.arc, { cls:'c' })}
+    ${T(59.8, y('passport'), 35, r.passport, { cls:'c', size:11 })}
+    ${T(123.7, y('passport'), 28, r.birth, { cls:'c', size:11 })}
+    ${yy ? T(92, y('date'), 14, String(+yy - 1911), { cls:'c' }) + T(115, y('date'), 12, String(+mm), { cls:'c' }) + T(136, y('date'), 12, String(+dd), { cls:'c' }) : ''}`;
+}
+
+function renderPages() {
+  let html = state.vouchers.map(voucherPage).join('');
+  for (let i = 0; i < state.receipts.length; i += 2) {
+    html += `<div class="page r"><img class="bg" src="assets/lingju.png" alt="">${receiptFields(state.receipts[i], 0)}${state.receipts[i + 1] ? receiptFields(state.receipts[i + 1], 1) : ''}</div>`;
+  }
+  const pages = document.getElementById('pages');
+  pages.innerHTML = html;
+  // 文字太長時自動縮小字級，避免超出格子
+  pages.querySelectorAll('[data-fit]').forEach(el => {
+    let size = parseFloat(el.style.fontSize) || parseFloat(el.parentElement.style.fontSize);
+    while (el.scrollWidth > el.clientWidth + 1 && size > 6) { size -= 0.5; el.style.fontSize = size + 'pt'; }
+  });
+  showTab();
+}
+
+function showTab() {
+  const pages = document.getElementById('pages');
+  pages.querySelectorAll('.page').forEach(p => p.style.display = p.classList.contains(state.tab) ? '' : 'none');
+  fitStage();
+}
+function fitStage() {
+  const stage = document.getElementById('stage'), pages = document.getElementById('pages');
+  pages.style.transform = ''; pages.style.height = '';
+  const z = Math.min(1, (stage.clientWidth - 48) / pages.offsetWidth);
+  if (z < 1) { pages.style.height = pages.offsetHeight * z + 'px'; pages.style.transform = `scale(${z})`; pages.style.marginLeft = '0'; }
+  else pages.style.marginLeft = '';
+}
+
+/* ---------- 事件 ---------- */
+const form = document.getElementById('form');
+form.addEventListener('input', e => {
+  const el = e.target, k = el.dataset.k;
+  if (!k) return;
+  const list = el.dataset.t === 'v' ? state.vouchers : state.receipts, i = +el.dataset.i, item = list[i];
+  item[k] = el.type === 'checkbox' ? el.checked : el.value;
+  if (k === 'helper' && el.value.trim()) {
+    const h = parseHelper(el.value);
+    item.total = String(h.total); item.count = String(h.count);
+    form.querySelector(`[data-t="v"][data-i="${i}"][data-k="total"]`).value = item.total;
+    form.querySelector(`[data-t="v"][data-i="${i}"][data-k="count"]`).value = item.count;
+  }
+  const calc = el.dataset.t === 'r' && form.querySelector(`[data-calc="${i}"]`);
+  if (calc) calc.innerHTML = calcText(item);
+  save(); renderPages();
+});
+form.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || ['count', 'total', 'helper', 'amount'].includes(e.target.dataset.k)) renderForm(); });
+form.addEventListener('click', e => {
+  const add = e.target.dataset.add, del = e.target.dataset.del;
+  if (add) (add === 'v' ? state.vouchers.push(newVoucher()) : state.receipts.push(newReceipt()));
+  else if (del) (del === 'v' ? state.vouchers : state.receipts).splice(+e.target.dataset.i, 1);
+  else return;
+  save(); renderForm(); renderPages();
+});
+document.querySelector('.tabs').addEventListener('click', e => {
+  if (!e.target.dataset.tab) return;
+  state.tab = e.target.dataset.tab; save(); renderForm(); showTab();
+});
+function doPrint(which) {
+  document.body.dataset.print = which;
+  const pages = document.querySelectorAll('.page');
+  pages.forEach(p => p.style.display = '');
+  window.print();
+}
+window.addEventListener('afterprint', showTab);
+document.getElementById('printTab').onclick = () => doPrint(state.tab);
+document.getElementById('printAll').onclick = () => doPrint('all');
+document.getElementById('reset').onclick = () => {
+  if (!confirm('確定要清空所有已填寫的內容嗎？')) return;
+  state = { tab: state.tab, vouchers:[newVoucher()], receipts:[newReceipt()] };
+  save(); renderForm(); renderPages();
+};
+window.addEventListener('resize', fitStage);
+
+renderForm(); renderPages();
+</script>
+</body>
+</html>
