@@ -164,8 +164,9 @@ const num = s => { const n = parseInt(String(s ?? '').replace(/[^\d]/g, ''), 10)
 const money = n => n == null ? '' : n.toLocaleString('en-US');
 
 function receiptCalc(r) {
-  const amount = num(r.amount), tax = num(r.tax) || 0, nhi = num(r.nhi) || 0;
-  return { amount, net: amount == null ? null : amount - tax - nhi, employer: amount == null ? null : Math.round(amount * NHI_RATE) };
+  // 實領只扣所得稅額，不扣健保補充保費
+  const amount = num(r.amount), tax = num(r.tax) || 0;
+  return { amount, net: amount == null ? null : amount - tax, employer: amount == null ? null : Math.round(amount * NHI_RATE) };
 }
 function parseHelper(text) {
   const nums = String(text).split(/[\s,，、+]+/).map(x => parseFloat(x)).filter(x => !isNaN(x));
