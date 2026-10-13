@@ -277,12 +277,12 @@ function renderForm() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   document.getElementById('form').innerHTML = t === 'v'
     ? state.vouchers.map(voucherForm).join('') + `<button class="add" data-add="v">＋ 再加一張黏存單</button>`
-    : state.receipts.map(receiptForm).join('') + `<button class="add" data-add="r">＋ 再加一張領據（一張 A4 可印兩張）</button>`;
+    : state.receipts.map(receiptForm).join('') + `<button class="add" data-add="r">＋ 再加一份領據（每份一張 A4）</button>`;
   document.getElementById('printTab').textContent = t === 'v' ? '列印黏存單' : '列印領據';
   updateFname();
   document.getElementById('tip').innerHTML = t === 'v'
     ? '列印後：經辦人親簽 → 發票浮貼在「憑證黏貼處」（可往上翻、由左至右、小張在上大張在下、每張間隔約 0.5 公分、最多 10 張）。'
-    : '列印後：請受領人在「簽名或蓋章」親簽；鐘點費的加註處也要簽名。一張 A4 有上下兩張領據，只填一張時下半張會保持空白。';
+    : '列印後：請受領人在「簽名或蓋章」親簽；鐘點費的加註處也要簽名。填一次會自動填好 A4 上下兩張領據，兩張都要簽名。';
 }
 
 /* ---------- 右側紙張 ---------- */
@@ -355,9 +355,8 @@ function receiptFields(r, s) {
 
 function renderPages() {
   let html = state.vouchers.map(voucherPage).join('');
-  for (let i = 0; i < state.receipts.length; i += 2) {
-    html += `<div class="page r"><img class="bg" src="assets/lingju.png" alt="">${receiptFields(state.receipts[i], 0)}${state.receipts[i + 1] ? receiptFields(state.receipts[i + 1], 1) : ''}</div>`;
-  }
+  // 一份領據佔一張 A4，上下兩張填同樣的內容
+  html += state.receipts.map(r => `<div class="page r"><img class="bg" src="assets/lingju.png" alt="">${receiptFields(r, 0)}${receiptFields(r, 1)}</div>`).join('');
   const pages = document.getElementById('pages');
   pages.innerHTML = html;
   // 文字太長時自動縮小字級，避免超出格子
